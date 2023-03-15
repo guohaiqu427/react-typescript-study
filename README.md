@@ -232,4 +232,3 @@ issue:
     ```js
     const ColorContext = createContext<ColorContextState>({hexColor:"#BADA55"} as ColorContextState);
     ```
-
