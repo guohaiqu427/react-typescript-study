@@ -76,7 +76,7 @@ COMMAND + CLICK TO THE FUNCTION
 2. pass state methods to components 
     ```js
     const parentComponent () => {
-        const [quotes, setQuotes] = useQuote<Quote[]>([]) // grab here!
+        const [quotes, setQuotes] = useState<Quote[]>([]) // grab here!
         return (
             <childComponent setQuotes={setQuotes}>
         )
@@ -127,50 +127,33 @@ COMMAND + CLICK TO THE FUNCTION
     const [state, dispatch] = useReducer(reducer, initalState)
     ```
 
-2. passing dispatch as prop (nested twice)
-    goal: in the end dispatch to event handler. 
-    1. once "intitalState types" and  "Action types" are defined in reducer function, 
-    2. and imported reducer fn into parent component, then used to defined useReducer
-    3. at this point, with ```const [state,dispath] = useReducer(reducer, initalState)```, state and dispatch has "types"
-    4. pass "dispatch" to child from parent 
+2. passing dispatch as prop
+    goal: dispatch event in child component's event handler. 
+  
+    1.  a. pass "dispatch" to child from parent , 
+        b. parent export action types. 
         ```js
-        <ColorSliders {...rgb} dispatch={dispatch} />
+        <ChildComp dispatch={dispatch} />
+        export type Action = {
+            type: "increment" | "decrement" | "reset"
+            payload: number
+        }   
+
         ```
-    5. child has to receive "the dispatch prop" and define type in its "type of interface"
+    2. a. child has to receive "the dispatch prop", b. child define dispatch type with the action imported
         ```js
-        interface ColorSidersProps extends RGBColorType {
-            dispatch: Dispatch<AdjustmentAction>;   //UNION TYPE
+        type ChildCompProps = {
+            dispath: Dispatch<Action>
         }
         ```
-    6. in child, use dispatch. Dispatch all the actions defiined in step 1
+
+    3. in child, use dispatch. Dispatch all the actions defiined in step 1
         at this ponit, dispatch has been passed to child and can be used. 
         ```js 
         // A function that wraps a dispatch action
         const adjustRed = (event: ChangeEvent<HTMLInputElement>) => {   
-            dispatch({ type: "ADJUST_RED", payload: +event.target.value });
+            dispatch({ type: "increment", payload: +event.target.value });
         };
-        const adjustGreen = (event: ChangeEvent<HTMLInputElement>) => {
-            dispatch({ type: "ADJUST_GREEN", payload: +event.target.value });
-        };
-
-        const adjustBlue = (event: ChangeEvent<HTMLInputElement>) => {
-            dispatch({ type: "ADJUST_BLUE", payload: +event.target.value });
-        };
-        ```
-    7.  action are noormally dispatch during user interactions, 
-        if the user interaction happens in a component nest component of child, 
-        we can pass the stored wrap function to the nested component, defined the type for the wrap function
-        ```js
-        export interface ColorInputProps {
-            id: string;
-            label: string;
-            value: number;
-            onChange: (event: ChangeEvent<HTMLInputElement>) => void; //here
-        }
-        const NestComp ({onchange} : ColorInputProps) =()=> {
-            <input onChange={onChange}
-        }
-      />
         ```
 
 # template literal types :
@@ -186,49 +169,31 @@ COMMAND + CLICK TO THE FUNCTION
 
 # Context 
 **not a state management tool**
-
+1. context
     ```js
     import { createContext } from 'react';
+    const ColorContext = createContext({value:"#BADA55"})
 
-    const ColorContextState = {
-        hexColor: "#BADA55"
-        dispatch: Dispatch<ColorActions>   // solution 1
-    }
-
-    const ColorContext = createContext<ColorContextState>({hexColor:"#BADA55"} as ColorContextState); // solution 2
-    
     export const colorProvider = ({children}:PropsWithChildren) => {
-        const [state, dispatch] = useReducer(colorReducer, initalState) // get dispatch that context type needed
-        const hexColor = state.hexColor
-        return(
-                                                                        // give dispatch to provider
-            <ColorContext.Provider value = { {hexColor, dispatch} }> 
+        return (
+            <ColorContext.Provider value = { {hexColor: "#000000"} }> 
                 {children}
             </ColorContext.Provider>
         )
     }
     ```
-    ``` js
-    <colorProvider>
-        <app />
-    </colorProvider>
-    ```
-    ```js 
-    // ...some imports
-    const {hexColor, dispatch} = useContext(ColorContext) // import 
-    onClick = { ()=> dispatch({type: "....", { payload: {hexColor} }}) } // use it 
-    ```
-
-issue: 
-    context need to be done outside of react component 
-    reducer has to be done in react component 
-    to define dispatch type in context, ==> issue
-
-1. make the dispatch property optional, 
+2. context and useReducer 
+    context happens outside of react component,  useReducer only happens inside react component 
+    define useReducer types in context 
     ```js
-    dispatch?: Dispatch<ColorActions>
-    ```
-2. tell ts it is this type even if ts does not know it yet: 
-    ```js
-    const ColorContext = createContext<ColorContextState>({hexColor:"#BADA55"} as ColorContextState);
-    ```
+    import { createContext } from 'react';
+    // solution1: make useReducer type optional 
+    const ColorContext = createContext<{ hexColor: string; dispatch?: Dispatch<ColorActions>}>({hexColor: "#000000"})
+
+    // solution2: tell ts, what ever passed in to createcontext, treat it as the defined type. 
+    type ColorContextState = {
+        hexColor: string; 
+        dispatch: Dispatch<ColorActions>
+    }
+    const ColorContext = createContext<{ColorContextState}>({hexColor:"#BADA55"} as ColorContextState); 
+
